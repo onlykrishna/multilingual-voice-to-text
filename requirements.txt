@@ -1,0 +1,9 @@
+SpeechRecognition
+pydub
+pyaudio
+openai-whisper
+numpy<2
+scipy
+langdetect
+flask
+pytest

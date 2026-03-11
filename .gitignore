@@ -1,0 +1,64 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+.Python
+
+# Virtual environments
+venv/
+env/
+.venv/
+ENV/
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+*.egg
+.eggs/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Whisper model cache
+*.pt
+
+# OpenAI / Local model weights
+models/
+
+# Audio upload temp files
+data/uploads/
+
+# Logs
+logs/
+*.log
+
+# IDE / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+Thumbs.db
+
+# Temp mic recordings
+data/sample_audio/temp_mic.wav
+
+# Environment files
+.env
+.env.local
+*.env
+
+# Output files (large, user-generated)
+data/output/
+
+# Sample audio (user audio, not committed)
+data/sample_audio/*.wav
+data/sample_audio/*.mp3
+# Keep the generator script
+!data/sample_audio/generate_samples.py

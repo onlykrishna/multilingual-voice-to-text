@@ -1,0 +1,1110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VoiceScribe — Multilingual Voice-to-Text</title>
+  <meta name="description" content="AI-powered multilingual voice-to-text transcription system. Record from microphone or upload audio files." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0f;
+      --surface: #111118;
+      --surface2: #17171f;
+      --surface3: #1e1e2a;
+      --border: rgba(255,255,255,0.07);
+      --border-focus: rgba(139,92,246,0.5);
+      --accent: #8b5cf6;
+      --accent2: #06b6d4;
+      --accent3: #f59e0b;
+      --green: #10b981;
+      --red: #ef4444;
+      --text: #f1f5f9;
+      --text2: #94a3b8;
+      --text3: #64748b;
+      --glow: 0 0 40px rgba(139,92,246,0.15);
+      --radius: 16px;
+      --radius-sm: 10px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Background mesh ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 50% at 20% 20%, rgba(139,92,246,0.08) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 40% at 80% 80%, rgba(6,182,212,0.06) 0%, transparent 60%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .wrap { position: relative; z-index: 1; max-width: 1100px; margin: 0 auto; padding: 0 20px; }
+
+    /* ── Header ── */
+    header {
+      padding: 28px 0 20px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(10,10,15,0.85);
+      backdrop-filter: blur(20px);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .header-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .logo-icon {
+      width: 42px;
+      height: 42px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      font-size: 20px;
+      box-shadow: 0 0 20px rgba(139,92,246,0.4);
+    }
+    .logo h1 { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
+    .logo span { font-size: 12px; color: var(--text3); font-weight: 400; display: block; margin-top: 1px; }
+    .badge {
+      font-size: 11px;
+      font-weight: 600;
+      background: linear-gradient(135deg, rgba(139,92,246,0.2), rgba(6,182,212,0.2));
+      border: 1px solid rgba(139,92,246,0.3);
+      color: var(--accent);
+      padding: 4px 12px;
+      border-radius: 20px;
+    }
+
+    /* ── Main layout ── */
+    main {
+      padding: 40px 0 80px;
+      display: grid;
+      gap: 28px;
+    }
+
+    /* ── Mode tabs ── */
+    .mode-tabs {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+    .mode-tab {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 16px;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .mode-tab::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      transition: opacity 0.25s;
+    }
+    .mode-tab.mic-tab::before  { background: linear-gradient(135deg, rgba(139,92,246,0.1), rgba(139,92,246,0.03)); }
+    .mode-tab.file-tab::before { background: linear-gradient(135deg, rgba(6,182,212,0.1), rgba(6,182,212,0.03)); }
+    .mode-tab.batch-tab::before { background: linear-gradient(135deg, rgba(245,158,11,0.1), rgba(245,158,11,0.03)); }
+
+    .mode-tab:hover, .mode-tab.active { border-color: transparent; transform: translateY(-2px); box-shadow: var(--glow); }
+    .mode-tab.active::before { opacity: 1; }
+    .mode-tab.active.mic-tab   { border-color: rgba(139,92,246,0.4); }
+    .mode-tab.active.file-tab  { border-color: rgba(6,182,212,0.4); }
+    .mode-tab.active.batch-tab { border-color: rgba(245,158,11,0.4); }
+
+    .mode-tab .tab-icon { font-size: 32px; margin-bottom: 10px; }
+    .mode-tab .tab-title { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+    .mode-tab .tab-desc { font-size: 12px; color: var(--text3); line-height: 1.5; }
+    .mode-tab.mic-tab .tab-title   { color: var(--accent); }
+    .mode-tab.file-tab .tab-title  { color: var(--accent2); }
+    .mode-tab.batch-tab .tab-title { color: var(--accent3); }
+
+    /* ── Panel ── */
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+      display: none;
+      animation: fadeUp 0.3s ease;
+    }
+    .panel.active { display: block; }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .panel-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* ── Form elements ── */
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .form-group { display: flex; flex-direction: column; gap: 8px; }
+    .form-group.full { grid-column: 1 / -1; }
+    .form-group label {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text2);
+    }
+    .form-group select,
+    .form-group input[type="number"],
+    .form-group input[type="range"] {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      padding: 10px 14px;
+      font-size: 14px;
+      font-family: inherit;
+      transition: border-color 0.2s;
+      width: 100%;
+      appearance: none;
+      -webkit-appearance: none;
+    }
+    .form-group select:focus,
+    .form-group input:focus {
+      outline: none;
+      border-color: var(--border-focus);
+    }
+    .form-group select option { background: #1a1a2e; }
+
+    /* Slider */
+    .duration-row { display: flex; align-items: center; gap: 14px; }
+    input[type="range"] {
+      flex: 1;
+      padding: 0 !important;
+      height: 6px;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+    .duration-val {
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--accent);
+      min-width: 52px;
+      text-align: center;
+    }
+
+    /* Checkboxes */
+    .checkbox-group { display: flex; gap: 12px; flex-wrap: wrap; }
+    .checkbox-item { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+    .checkbox-item input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--accent);
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    .checkbox-item span { font-size: 13px; color: var(--text2); font-weight: 500; }
+
+    /* ── Upload zone ── */
+    .upload-zone {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 40px 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.25s;
+      background: var(--surface2);
+      position: relative;
+    }
+    .upload-zone:hover, .upload-zone.drag-over {
+      border-color: var(--accent2);
+      background: rgba(6,182,212,0.05);
+    }
+    .upload-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+    .upload-icon { font-size: 40px; margin-bottom: 12px; }
+    .upload-zone p { color: var(--text2); font-size: 14px; }
+    .upload-zone strong { color: var(--accent2); }
+    .upload-hint { font-size: 12px; color: var(--text3); margin-top: 6px; }
+    .file-name {
+      margin-top: 14px;
+      padding: 10px 16px;
+      background: rgba(6,182,212,0.1);
+      border: 1px solid rgba(6,182,212,0.3);
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      color: var(--accent2);
+      display: none;
+    }
+
+    /* ── Buttons ── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      font-size: 15px;
+      font-weight: 700;
+      font-family: inherit;
+      padding: 14px 28px;
+      border-radius: var(--radius-sm);
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      letter-spacing: 0.2px;
+      width: 100%;
+      margin-top: 20px;
+    }
+    .btn-mic {
+      background: linear-gradient(135deg, #7c3aed, #8b5cf6);
+      color: white;
+      box-shadow: 0 4px 20px rgba(139,92,246,0.35);
+    }
+    .btn-mic:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(139,92,246,0.5); }
+    .btn-file {
+      background: linear-gradient(135deg, #0891b2, #06b6d4);
+      color: white;
+      box-shadow: 0 4px 20px rgba(6,182,212,0.35);
+    }
+    .btn-file:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(6,182,212,0.5); }
+    .btn-batch {
+      background: linear-gradient(135deg, #d97706, #f59e0b);
+      color: white;
+      box-shadow: 0 4px 20px rgba(245,158,11,0.35);
+    }
+    .btn-batch:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(245,158,11,0.5); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
+
+    /* ── Mic animation ── */
+    .mic-visual {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      padding: 32px 0;
+      gap: 16px;
+    }
+    .mic-visual.active { display: flex; }
+    .mic-ring {
+      position: relative;
+      width: 100px;
+      height: 100px;
+      display: grid;
+      place-items: center;
+    }
+    .ring {
+      position: absolute;
+      border-radius: 50%;
+      border: 2px solid var(--accent);
+      animation: ripple 1.6s ease-out infinite;
+      opacity: 0;
+    }
+    .ring:nth-child(1) { width: 60px; height: 60px; animation-delay: 0s; }
+    .ring:nth-child(2) { width: 80px; height: 80px; animation-delay: 0.4s; }
+    .ring:nth-child(3) { width: 100px; height: 100px; animation-delay: 0.8s; }
+    @keyframes ripple {
+      0%   { opacity: 0.8; transform: scale(0.8); }
+      100% { opacity: 0;   transform: scale(1.1); }
+    }
+    .mic-core {
+      width: 52px; height: 52px;
+      background: linear-gradient(135deg, var(--accent), #7c3aed);
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-size: 24px;
+      z-index: 1;
+      box-shadow: 0 0 30px rgba(139,92,246,0.6);
+    }
+    .mic-countdown {
+      font-size: 36px;
+      font-weight: 800;
+      color: var(--accent);
+    }
+    .mic-label { font-size: 14px; color: var(--text2); }
+
+    /* ── Progress ── */
+    .progress-box {
+      display: none;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      margin-top: 24px;
+    }
+    .progress-box.active { display: block; }
+    .progress-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+    .progress-title { font-size: 14px; font-weight: 600; }
+    .progress-pct { font-size: 14px; font-weight: 700; color: var(--accent); }
+    .progress-bar-bg {
+      height: 6px;
+      background: var(--surface3);
+      border-radius: 99px;
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      border-radius: 99px;
+      transition: width 0.4s ease;
+      width: 0%;
+    }
+    .progress-log {
+      max-height: 120px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .log-entry {
+      font-size: 12px;
+      color: var(--text2);
+      padding: 4px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      animation: fadeIn 0.2s ease;
+    }
+    .log-entry:last-child { border-bottom: none; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+    /* ── Results ── */
+    .results-box {
+      display: none;
+      animation: fadeUp 0.4s ease;
+    }
+    .results-box.active { display: grid; gap: 20px; }
+
+    .result-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .result-title { font-size: 20px; font-weight: 800; }
+    .result-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+    .stat-card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      text-align: center;
+    }
+    .stat-val { font-size: 24px; font-weight: 800; margin-bottom: 4px; }
+    .stat-lbl { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.5px; }
+    .stat-card.conf .stat-val { color: var(--green); }
+    .stat-card.lang .stat-val { color: var(--accent2); font-size: 18px; }
+    .stat-card.dur  .stat-val { color: var(--accent); }
+    .stat-card.wc   .stat-val { color: var(--accent3); }
+
+    .transcript-box {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+    }
+    .transcript-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text3);
+      margin-bottom: 14px;
+    }
+    .transcript-text {
+      font-size: 16px;
+      line-height: 1.8;
+      color: var(--text);
+      min-height: 60px;
+      white-space: pre-wrap;
+    }
+    .transcript-empty { color: var(--text3); font-style: italic; font-size: 14px; }
+
+    /* copy button */
+    .copy-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 7px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--surface3);
+      color: var(--text2);
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+    .copy-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* Tabs for transcript/srt/report */
+    .output-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+    .output-tab {
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text3);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+    }
+    .output-tab:hover { color: var(--text2); }
+    .output-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    .output-panel { display: none; }
+    .output-panel.active { display: block; }
+
+    /* SRT view */
+    .srt-view {
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      color: var(--text2);
+      background: var(--surface3);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      max-height: 200px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+    }
+
+    /* Downloads */
+    .downloads { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    .dl-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 8px 16px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      color: var(--text2);
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+    .dl-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+    .dl-btn.txt  { border-color: rgba(16,185,129,0.3);  color: var(--green); }
+    .dl-btn.json { border-color: rgba(139,92,246,0.3);  color: var(--accent); }
+    .dl-btn.srt  { border-color: rgba(6,182,212,0.3);   color: var(--accent2); }
+
+    /* Recent outputs */
+    .recent-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+    }
+    .recent-title { font-size: 15px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+    .recent-list { display: flex; flex-direction: column; gap: 8px; }
+    .recent-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      background: var(--surface2);
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      border: 1px solid var(--border);
+    }
+    .recent-item-name { color: var(--text2); font-family: monospace; font-size: 12px; }
+    .recent-item-meta { color: var(--text3); font-size: 11px; margin-top: 2px; }
+    .recent-item a {
+      font-size: 11px;
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 600;
+    }
+    .recent-item a:hover { text-decoration: underline; }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed;
+      bottom: 28px;
+      right: 28px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 12px 20px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-weight: 500;
+      z-index: 999;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      animation: slideIn 0.3s ease;
+      display: none;
+    }
+    .toast.show { display: block; }
+    @keyframes slideIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* ── Responsive ── */
+    @media (max-width: 720px) {
+      .mode-tabs { grid-template-columns: 1fr; }
+      .form-grid  { grid-template-columns: 1fr; }
+      .stat-grid  { grid-template-columns: 1fr 1fr; }
+      .result-header { flex-direction: column; align-items: flex-start; }
+    }
+    @media (max-width: 480px) {
+      .stat-grid { grid-template-columns: 1fr 1fr; }
+      .header-inner { flex-direction: column; gap: 12px; }
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 99px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="wrap header-inner">
+    <div class="logo">
+      <div class="logo-icon">🎙️</div>
+      <div>
+        <h1>VoiceScribe</h1>
+        <span>Multilingual Voice-to-Text System</span>
+      </div>
+    </div>
+    <span class="badge">50+ Languages · AI-Powered</span>
+  </div>
+</header>
+
+<div class="wrap">
+  <main>
+
+    <!-- ── Mode selector ── -->
+    <div class="mode-tabs">
+      <div class="mode-tab mic-tab active" onclick="selectMode('mic')">
+        <div class="tab-icon">🎙️</div>
+        <div class="tab-title">Record from Mic</div>
+        <div class="tab-desc">Live capture from your microphone. Just speak — system records, transcribes, and saves.</div>
+      </div>
+      <div class="mode-tab file-tab" onclick="selectMode('file')">
+        <div class="tab-icon">📁</div>
+        <div class="tab-title">Upload Audio File</div>
+        <div class="tab-desc">Upload WAV, MP3, FLAC, OGG or M4A files for accurate transcription.</div>
+      </div>
+      <div class="mode-tab batch-tab" onclick="selectMode('batch')">
+        <div class="tab-icon">📦</div>
+        <div class="tab-title">Recent Outputs</div>
+        <div class="tab-desc">Browse and download previously generated transcription files.</div>
+      </div>
+    </div>
+
+    <!-- ── Mic Panel ── -->
+    <div class="panel active" id="panel-mic">
+      <div class="panel-title">🎙️ Microphone Recording</div>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Recording Duration</label>
+          <div class="duration-row">
+            <input type="range" id="mic-duration" min="3" max="120" value="10"
+              oninput="document.getElementById('dur-val').textContent=this.value+'s'">
+            <div class="duration-val" id="dur-val">10s</div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Language</label>
+          <select id="mic-lang">
+            <option value="auto">🌐 Auto Detect</option>
+            <option value="en-US">🇺🇸 English (US)</option>
+            <option value="en-GB">🇬🇧 English (UK)</option>
+            <option value="hi-IN">🇮🇳 Hindi</option>
+            <option value="es-ES">🇪🇸 Spanish</option>
+            <option value="fr-FR">🇫🇷 French</option>
+            <option value="de-DE">🇩🇪 German</option>
+            <option value="it-IT">🇮🇹 Italian</option>
+            <option value="pt-BR">🇧🇷 Portuguese</option>
+            <option value="ru-RU">🇷🇺 Russian</option>
+            <option value="ja-JP">🇯🇵 Japanese</option>
+            <option value="ko-KR">🇰🇷 Korean</option>
+            <option value="zh-CN">🇨🇳 Chinese (Simplified)</option>
+            <option value="zh-TW">🇹🇼 Chinese (Traditional)</option>
+            <option value="ar-SA">🇸🇦 Arabic</option>
+            <option value="tr-TR">🇹🇷 Turkish</option>
+            <option value="nl-NL">🇳🇱 Dutch</option>
+            <option value="pl-PL">🇵🇱 Polish</option>
+            <option value="sv-SE">🇸🇪 Swedish</option>
+            <option value="da-DK">🇩🇰 Danish</option>
+            <option value="fi-FI">🇫🇮 Finnish</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Recognition Engine</label>
+          <select id="mic-engine">
+            <option value="google">⚡ Google Speech API (Fast, Online)</option>
+            <option value="whisper">🤖 OpenAI Whisper (Accurate, Offline)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Output Formats</label>
+          <div class="checkbox-group">
+            <label class="checkbox-item"><input type="checkbox" checked id="mic-fmt-txt"><span>TXT</span></label>
+            <label class="checkbox-item"><input type="checkbox" checked id="mic-fmt-json"><span>JSON</span></label>
+            <label class="checkbox-item"><input type="checkbox" checked id="mic-fmt-srt"><span>SRT Subtitles</span></label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mic visual -->
+      <div class="mic-visual" id="mic-visual">
+        <div class="mic-ring">
+          <div class="ring"></div><div class="ring"></div><div class="ring"></div>
+          <div class="mic-core">🎙️</div>
+        </div>
+        <div class="mic-countdown" id="mic-countdown">10</div>
+        <div class="mic-label">Recording… speak clearly into your microphone</div>
+      </div>
+
+      <button class="btn btn-mic" id="mic-btn" onclick="startMic()">
+        🎙️ Start Recording
+      </button>
+    </div>
+
+    <!-- ── File Panel ── -->
+    <div class="panel" id="panel-file">
+      <div class="panel-title">📁 Upload Audio File</div>
+
+      <div class="upload-zone" id="upload-zone">
+        <input type="file" id="audio-file" accept=".wav,.mp3,.flac,.ogg,.m4a,.webm"
+          onchange="handleFileSelect(this)">
+        <div class="upload-icon">☁️</div>
+        <p><strong>Drop your audio file here</strong> or click to browse</p>
+        <div class="upload-hint">Supports: WAV · MP3 · FLAC · OGG · M4A · WebM (max 200MB)</div>
+      </div>
+      <div class="file-name" id="file-name"></div>
+
+      <div class="form-grid" style="margin-top:20px;">
+        <div class="form-group">
+          <label>Language</label>
+          <select id="file-lang">
+            <option value="auto">🌐 Auto Detect</option>
+            <option value="en-US">🇺🇸 English (US)</option>
+            <option value="en-GB">🇬🇧 English (UK)</option>
+            <option value="hi-IN">🇮🇳 Hindi</option>
+            <option value="es-ES">🇪🇸 Spanish</option>
+            <option value="fr-FR">🇫🇷 French</option>
+            <option value="de-DE">🇩🇪 German</option>
+            <option value="it-IT">🇮🇹 Italian</option>
+            <option value="pt-BR">🇧🇷 Portuguese</option>
+            <option value="ru-RU">🇷🇺 Russian</option>
+            <option value="ja-JP">🇯🇵 Japanese</option>
+            <option value="ko-KR">🇰🇷 Korean</option>
+            <option value="zh-CN">🇨🇳 Chinese (Simplified)</option>
+            <option value="ar-SA">🇸🇦 Arabic</option>
+            <option value="tr-TR">🇹🇷 Turkish</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Recognition Engine</label>
+          <select id="file-engine">
+            <option value="google">⚡ Google Speech API (Fast, Online)</option>
+            <option value="whisper">🤖 OpenAI Whisper (Accurate, Offline)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Output Formats</label>
+          <div class="checkbox-group">
+            <label class="checkbox-item"><input type="checkbox" checked id="file-fmt-txt"><span>TXT</span></label>
+            <label class="checkbox-item"><input type="checkbox" checked id="file-fmt-json"><span>JSON</span></label>
+            <label class="checkbox-item"><input type="checkbox" checked id="file-fmt-srt"><span>SRT Subtitles</span></label>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn btn-file" id="file-btn" onclick="startFile()" disabled>
+        📁 Transcribe Audio File
+      </button>
+    </div>
+
+    <!-- ── Batch / Recent Panel ── -->
+    <div class="panel" id="panel-batch">
+      <div class="panel-title">📦 Recent Transcription Outputs</div>
+      <div class="recent-list" id="recent-list">
+        <div style="color:var(--text3);font-size:13px;">Loading recent files…</div>
+      </div>
+      <button class="copy-btn" onclick="loadRecent()" style="margin-top:16px;">🔄 Refresh</button>
+    </div>
+
+    <!-- ── Progress box (shared) ── -->
+    <div class="progress-box" id="progress-box">
+      <div class="progress-header">
+        <span class="progress-title">Processing Pipeline</span>
+        <span class="progress-pct" id="prog-pct">0%</span>
+      </div>
+      <div class="progress-bar-bg">
+        <div class="progress-bar-fill" id="prog-fill"></div>
+      </div>
+      <div class="progress-log" id="prog-log"></div>
+    </div>
+
+    <!-- ── Results ── -->
+    <div class="results-box" id="results-box">
+      <div>
+        <div class="result-header">
+          <div class="result-title">✅ Transcription Result</div>
+          <div class="result-actions">
+            <button class="copy-btn" onclick="copyText()">📋 Copy Text</button>
+          </div>
+        </div>
+
+        <div class="stat-grid">
+          <div class="stat-card conf">
+            <div class="stat-val" id="res-conf">—</div>
+            <div class="stat-lbl">Confidence</div>
+          </div>
+          <div class="stat-card lang">
+            <div class="stat-val" id="res-lang">—</div>
+            <div class="stat-lbl">Language</div>
+          </div>
+          <div class="stat-card dur">
+            <div class="stat-val" id="res-dur">—</div>
+            <div class="stat-lbl">Duration</div>
+          </div>
+          <div class="stat-card wc">
+            <div class="stat-val" id="res-wc">—</div>
+            <div class="stat-lbl">Words</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="transcript-box">
+        <div class="output-tabs">
+          <div class="output-tab active" onclick="switchTab('transcript')">📝 Transcript</div>
+          <div class="output-tab" onclick="switchTab('srt')">🎬 SRT Subtitles</div>
+          <div class="output-tab" onclick="switchTab('report')">📊 Report</div>
+        </div>
+        <div class="output-panel active" id="tab-transcript">
+          <div class="transcript-label">Full Transcription</div>
+          <div class="transcript-text" id="res-text"></div>
+        </div>
+        <div class="output-panel" id="tab-srt">
+          <div class="transcript-label">SRT Subtitle Format</div>
+          <div class="srt-view" id="res-srt"></div>
+        </div>
+        <div class="output-panel" id="tab-report">
+          <div class="transcript-label">Processing Report</div>
+          <div class="srt-view" id="res-report"></div>
+        </div>
+      </div>
+
+      <div>
+        <div class="transcript-label" style="margin-bottom:12px;">💾 Download Files</div>
+        <div class="downloads" id="download-links"></div>
+      </div>
+    </div>
+
+    <!-- ── Recent outputs list ── -->
+    <div class="recent-box" id="outputs-recent" style="display:none;">
+      <div class="recent-title">🗂️ Saved Output Files</div>
+      <div class="recent-list" id="outputs-list"></div>
+    </div>
+
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  // ── State ────────────────────────────────────────────────────────────────
+  let currentMode = 'mic';
+  let sessionId   = null;
+  let evtSource   = null;
+  let micTimer    = null;
+  let selectedFile = null;
+
+  // ── Mode switching ───────────────────────────────────────────────────────
+  function selectMode(mode) {
+    currentMode = mode;
+    document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    const tabMap = { mic: 0, file: 1, batch: 2 };
+    document.querySelectorAll('.mode-tab')[tabMap[mode]].classList.add('active');
+    document.getElementById(`panel-${mode}`).classList.add('active');
+    if (mode === 'batch') loadRecent();
+  }
+
+  // ── Upload zone drag-drop ────────────────────────────────────────────────
+  const zone = document.getElementById('upload-zone');
+  ['dragenter','dragover'].forEach(e => zone.addEventListener(e, ev => { ev.preventDefault(); zone.classList.add('drag-over'); }));
+  ['dragleave','drop'].forEach(e => zone.addEventListener(e, ev => { ev.preventDefault(); zone.classList.remove('drag-over'); }));
+  zone.addEventListener('drop', ev => {
+    const f = ev.dataTransfer.files[0];
+    if (f) { document.getElementById('audio-file').files = ev.dataTransfer.files; handleFileSelect({ files: [f] }); }
+  });
+
+  function handleFileSelect(input) {
+    const f = input.files ? input.files[0] : null;
+    if (!f) return;
+    selectedFile = f;
+    const fn = document.getElementById('file-name');
+    fn.textContent = `📎 ${f.name} (${(f.size / 1024 / 1024).toFixed(2)} MB)`;
+    fn.style.display = 'block';
+    document.getElementById('file-btn').disabled = false;
+  }
+
+  // ── Generate session ID ──────────────────────────────────────────────────
+  function genId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+
+  // ── Progress helpers ─────────────────────────────────────────────────────
+  function showProgress() {
+    document.getElementById('progress-box').classList.add('active');
+    document.getElementById('results-box').classList.remove('active');
+    document.getElementById('outputs-recent').style.display = 'none';
+    document.getElementById('prog-log').innerHTML = '';
+    setProgress(0, 'Starting…');
+  }
+
+  function setProgress(pct, msg) {
+    document.getElementById('prog-fill').style.width = pct + '%';
+    document.getElementById('prog-pct').textContent  = pct + '%';
+    addLog(msg);
+  }
+
+  function addLog(msg) {
+    const log = document.getElementById('prog-log');
+    const el  = document.createElement('div');
+    el.className = 'log-entry';
+    el.textContent = msg;
+    log.appendChild(el);
+    log.scrollTop = log.scrollHeight;
+  }
+
+  // ── SSE listener ─────────────────────────────────────────────────────────
+  function listenSSE(sid) {
+    if (evtSource) evtSource.close();
+    evtSource = new EventSource(`/api/events/${sid}`);
+    evtSource.onmessage = e => {
+      const d = JSON.parse(e.data);
+      setProgress(d.progress || 0, d.message || '');
+      if (d.step === 'done') {
+        evtSource.close();
+        showResults(d);
+        stopMicVisual();
+        enableButtons();
+        loadOutputsBanner();
+      } else if (d.step === 'error') {
+        evtSource.close();
+        showToast('❌ ' + (d.message || 'Processing error'), true);
+        stopMicVisual();
+        enableButtons();
+      }
+    };
+    evtSource.onerror = () => evtSource.close();
+  }
+
+  function enableButtons() {
+    document.getElementById('mic-btn').disabled  = false;
+    document.getElementById('file-btn').disabled = !selectedFile;
+  }
+
+  // ── Mic recording ────────────────────────────────────────────────────────
+  function startMic() {
+    const duration = parseInt(document.getElementById('mic-duration').value);
+    const lang     = document.getElementById('mic-lang').value;
+    const engine   = document.getElementById('mic-engine').value;
+    const formats  = getFormats('mic');
+
+    sessionId = genId();
+    document.getElementById('mic-btn').disabled = true;
+
+    showProgress();
+    startMicVisual(duration);
+
+    fetch('/api/mic', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ session_id: sessionId, duration, language: lang, engine, formats })
+    })
+    .then(r => r.json())
+    .then(() => listenSSE(sessionId))
+    .catch(err => { showToast('❌ Server error: ' + err.message, true); enableButtons(); stopMicVisual(); });
+  }
+
+  function startMicVisual(duration) {
+    const visual = document.getElementById('mic-visual');
+    const cd     = document.getElementById('mic-countdown');
+    visual.classList.add('active');
+    let secs = duration;
+    cd.textContent = secs + 's';
+    micTimer = setInterval(() => {
+      secs--;
+      cd.textContent = secs + 's';
+      if (secs <= 0) stopMicVisual();
+    }, 1000);
+  }
+
+  function stopMicVisual() {
+    clearInterval(micTimer);
+    document.getElementById('mic-visual').classList.remove('active');
+  }
+
+  // ── File upload ──────────────────────────────────────────────────────────
+  function startFile() {
+    if (!selectedFile) { showToast('Please select an audio file first'); return; }
+    const lang    = document.getElementById('file-lang').value;
+    const engine  = document.getElementById('file-engine').value;
+    const formats = getFormats('file');
+
+    sessionId = genId();
+    document.getElementById('file-btn').disabled = true;
+
+    const fd = new FormData();
+    fd.append('audio', selectedFile);
+    fd.append('session_id', sessionId);
+    fd.append('language',  lang);
+    fd.append('engine',    engine);
+    fd.append('formats',   formats.join(','));
+
+    showProgress();
+
+    fetch('/api/file', { method: 'POST', body: fd })
+      .then(r => r.json())
+      .then(() => listenSSE(sessionId))
+      .catch(err => { showToast('❌ Upload error: ' + err.message, true); enableButtons(); });
+  }
+
+  // ── Format checkboxes ────────────────────────────────────────────────────
+  function getFormats(prefix) {
+    return ['txt','json','srt'].filter(f => document.getElementById(`${prefix}-fmt-${f}`).checked);
+  }
+
+  // ── Show results ─────────────────────────────────────────────────────────
+  function showResults(d) {
+    document.getElementById('results-box').classList.add('active');
+    document.getElementById('progress-box').classList.remove('active');
+
+    const txt = d.transcription || '';
+    document.getElementById('res-text').innerHTML = txt
+      ? txt.replace(/\n/g, '<br>')
+      : '<span class="transcript-empty">No speech detected in the audio. Please try again with clearer audio.</span>';
+
+    document.getElementById('res-conf').textContent = d.confidence  ? d.confidence + '%' : '—';
+    document.getElementById('res-lang').textContent = d.language    || '—';
+    document.getElementById('res-dur').textContent  = d.duration    ? d.duration + 's'   : '—';
+    document.getElementById('res-wc').textContent   = d.word_count  || '0';
+
+    document.getElementById('res-srt').textContent    = d.srt    || '(No timestamped segments)';
+    document.getElementById('res-report').textContent = d.report || '';
+
+    // Download links
+    const dl = document.getElementById('download-links');
+    dl.innerHTML = '';
+    if (d.saved_files) {
+      const icons = { txt: '📄', json: '📋', srt: '🎬' };
+      const classes = { txt: 'txt', json: 'json', srt: 'srt' };
+      Object.entries(d.saved_files).forEach(([type, fname]) => {
+        const a = document.createElement('a');
+        a.href = `/api/download/${fname}`;
+        a.className = `dl-btn ${classes[type]}`;
+        a.innerHTML = `${icons[type]} Download .${type.toUpperCase()}`;
+        a.download = fname;
+        dl.appendChild(a);
+      });
+    }
+    if (dl.innerHTML === '') dl.innerHTML = '<span style="color:var(--text3);font-size:13px;">No formats selected</span>';
+
+    switchTab('transcript');
+  }
+
+  // ── Output tabs ──────────────────────────────────────────────────────────
+  function switchTab(tab) {
+    document.querySelectorAll('.output-tab').forEach((t, i) => {
+      const tabs = ['transcript','srt','report'];
+      t.classList.toggle('active', tabs[i] === tab);
+    });
+    document.querySelectorAll('.output-panel').forEach(p => p.classList.remove('active'));
+    document.getElementById(`tab-${tab}`).classList.add('active');
+  }
+
+  // ── Copy text ────────────────────────────────────────────────────────────
+  function copyText() {
+    const txt = document.getElementById('res-text').innerText;
+    navigator.clipboard.writeText(txt).then(() => showToast('✅ Copied to clipboard!'));
+  }
+
+  // ── Recent outputs ───────────────────────────────────────────────────────
+  function loadRecent() {
+    fetch('/api/outputs')
+      .then(r => r.json())
+      .then(files => {
+        const list = document.getElementById('recent-list');
+        if (files.length === 0) {
+          list.innerHTML = '<div style="color:var(--text3);font-size:13px;">No output files yet. Run a transcription first.</div>';
+          return;
+        }
+        list.innerHTML = files.map(f => `
+          <div class="recent-item">
+            <div>
+              <div class="recent-item-name">${f.name}</div>
+              <div class="recent-item-meta">${f.modified} · ${(f.size/1024).toFixed(1)} KB</div>
+            </div>
+            <a href="/api/download/${f.name}" download="${f.name}">⬇ Download</a>
+          </div>`).join('');
+      });
+  }
+
+  function loadOutputsBanner() {
+    fetch('/api/outputs')
+      .then(r => r.json())
+      .then(files => {
+        if (files.length === 0) return;
+        const box  = document.getElementById('outputs-recent');
+        const list = document.getElementById('outputs-list');
+        box.style.display = 'block';
+        list.innerHTML = files.slice(0, 5).map(f => `
+          <div class="recent-item">
+            <div>
+              <div class="recent-item-name">${f.name}</div>
+              <div class="recent-item-meta">${f.modified} · ${(f.size/1024).toFixed(1)} KB</div>
+            </div>
+            <a href="/api/download/${f.name}" download="${f.name}">⬇ Download</a>
+          </div>`).join('');
+      });
+  }
+
+  // ── Toast ────────────────────────────────────────────────────────────────
+  function showToast(msg, isError = false) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.style.borderColor = isError ? 'rgba(239,68,68,0.4)' : 'rgba(16,185,129,0.4)';
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3500);
+  }
+
+  // ── Init ─────────────────────────────────────────────────────────────────
+  loadOutputsBanner();
+</script>
+</body>
+</html>
