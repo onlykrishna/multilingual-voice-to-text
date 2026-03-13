@@ -4,6 +4,7 @@ Flask web server for the Multilingual Voice-to-Text System.
 import os, sys, json, time, datetime, threading, glob, logging
 from pathlib import Path
 from flask import Flask, request, jsonify, render_template, send_from_directory, Response, stream_with_context
+from flask_cors import CORS
 
 sys.path.insert(0, os.path.dirname(__file__))
 
@@ -25,6 +26,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
+CORS(app)
 app.config['MAX_CONTENT_LENGTH'] = 200 * 1024 * 1024  # 200MB
 
 UPLOAD_FOLDER = './data/uploads'
