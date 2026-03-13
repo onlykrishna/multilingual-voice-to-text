@@ -7,3 +7,6 @@ scipy
 langdetect
 flask
 pytest
+resemblyzer
+scikit-learn
+librosa

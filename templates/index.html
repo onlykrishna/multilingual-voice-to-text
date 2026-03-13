@@ -106,7 +106,7 @@
     /* ── Mode tabs ── */
     .mode-tabs {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(4, 1fr);
       gap: 12px;
     }
     .mode-tab {
@@ -143,6 +143,103 @@
     .mode-tab.mic-tab .tab-title   { color: var(--accent); }
     .mode-tab.file-tab .tab-title  { color: var(--accent2); }
     .mode-tab.batch-tab .tab-title { color: var(--accent3); }
+    .mode-tab.vid-tab .tab-title   { color: #f472b6; }
+    .mode-tab.vid-tab::before { background: linear-gradient(135deg, rgba(244,114,182,0.1), rgba(244,114,182,0.03)); }
+    .mode-tab.active.vid-tab  { border-color: rgba(244,114,182,0.4); }
+
+    /* Voice ID styles */
+    .vid-step {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 22px;
+      transition: border-color 0.3s;
+    }
+    .vid-step.done { border-color: rgba(16,185,129,0.4); }
+    .vid-step-num {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #db2777, #f472b6);
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 800; color: white;
+      margin-right: 10px;
+    }
+    .vid-step-title {
+      font-size: 15px; font-weight: 700; margin-bottom: 14px;
+      display: flex; align-items: center;
+    }
+    .enroll-status {
+      margin-top: 14px;
+      padding: 12px 16px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      display: none;
+    }
+    .enroll-status.success {
+      background: rgba(16,185,129,0.1);
+      border: 1px solid rgba(16,185,129,0.3);
+      color: var(--green);
+      display: block;
+    }
+    .enroll-status.error {
+      background: rgba(239,68,68,0.1);
+      border: 1px solid rgba(239,68,68,0.3);
+      color: var(--red);
+      display: block;
+    }
+    .btn-vid {
+      background: linear-gradient(135deg, #be185d, #f472b6);
+      color: white;
+      box-shadow: 0 4px 20px rgba(244,114,182,0.35);
+    }
+    .btn-vid:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(244,114,182,0.5); }
+    .btn-vid2 {
+      background: linear-gradient(135deg, #0f766e, #14b8a6);
+      color: white;
+      box-shadow: 0 4px 20px rgba(20,184,166,0.35);
+    }
+    .btn-vid2:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(20,184,166,0.5); }
+    .vid-stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin: 20px 0; }
+    .vid-stat { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 16px; text-align: center; }
+    .vid-stat .sv { font-size: 22px; font-weight: 800; margin-bottom: 4px; }
+    .vid-stat .sl { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.5px; }
+    .vid-stat.detected .sv { color: var(--green); }
+    .vid-stat.conf2    .sv { color: #f472b6; }
+    .vid-stat.speak    .sv { color: var(--accent2); }
+    .vid-stat.occ      .sv { color: var(--accent3); }
+    .timeline-wrap {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      overflow-x: auto;
+    }
+    .segments-tbl {
+      width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 16px;
+    }
+    .segments-tbl th {
+      text-align: left; padding: 8px 12px;
+      font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;
+      color: var(--text3); border-bottom: 1px solid var(--border);
+    }
+    .segments-tbl td {
+      padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.04);
+      vertical-align: top;
+    }
+    .segments-tbl tr:last-child td { border-bottom: none; }
+    .conf-badge {
+      display: inline-block; padding: 2px 8px;
+      border-radius: 99px; font-size: 11px; font-weight: 700;
+    }
+    .conf-badge.hi { background: rgba(16,185,129,0.15); color: var(--green); }
+    .conf-badge.md { background: rgba(245,158,11,0.15); color: var(--accent3); }
+    .conf-badge.lo { background: rgba(239,68,68,0.15); color: var(--red); }
+    .dl-btn.wav { border-color: rgba(244,114,182,0.3); color: #f472b6; }
+    .dl-btn.rep { border-color: rgba(139,92,246,0.3); color: var(--accent); }
+    @media (max-width: 720px) {
+      .mode-tabs { grid-template-columns: 1fr 1fr; }
+      .vid-stats { grid-template-columns: 1fr 1fr; }
+    }
 
     /* ── Panel ── */
     .panel {
@@ -619,6 +716,11 @@
         <div class="tab-title">Recent Outputs</div>
         <div class="tab-desc">Browse and download previously generated transcription files.</div>
       </div>
+      <div class="mode-tab vid-tab" onclick="selectMode('vid')">
+        <div class="tab-icon">🕵️</div>
+        <div class="tab-title">Voice Identification</div>
+        <div class="tab-desc">Enroll a speaker's voice and detect them in any conversation recording.</div>
+      </div>
     </div>
 
     <!-- ── Mic Panel ── -->
@@ -748,16 +850,113 @@
       </button>
     </div>
 
-    <!-- ── Batch / Recent Panel ── -->
-    <div class="panel" id="panel-batch">
-      <div class="panel-title">📦 Recent Transcription Outputs</div>
-      <div class="recent-list" id="recent-list">
-        <div style="color:var(--text3);font-size:13px;">Loading recent files…</div>
+    <!-- ── Voice ID Panel ── -->
+    <div class="panel" id="panel-vid">
+      <div class="panel-title">🕵️ Voice Identification & Speaker Detection</div>
+
+      <!-- Step 1: Enroll -->
+      <div class="vid-step" id="vid-step1">
+        <div class="vid-step-title"><span class="vid-step-num">1</span> Enroll Sample Voice</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Speaker Name (optional)</label>
+            <input type="text" id="vid-speaker-name" placeholder="e.g. John Doe"
+              style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);padding:10px 14px;font-size:14px;font-family:inherit;width:100%;">
+          </div>
+          <div class="form-group">
+            <label>Sample Audio (10–30s recommended)</label>
+            <div class="upload-zone" style="padding:20px;" id="vid-enroll-zone">
+              <input type="file" id="vid-sample-file" accept=".wav,.mp3,.flac,.ogg,.m4a"
+                onchange="handleVidEnrollFile(this)">
+              <div class="upload-icon" style="font-size:28px;margin-bottom:6px;">🎤</div>
+              <p style="font-size:13px;"><strong>Drop sample voice</strong> or click to browse</p>
+              <div id="vid-sample-name" class="file-name"></div>
+            </div>
+          </div>
+        </div>
+        <button class="btn btn-vid" id="vid-enroll-btn" onclick="enrollVoice()" disabled>
+          🎤 Analyze &amp; Enroll Speaker
+        </button>
+        <div class="enroll-status" id="vid-enroll-status"></div>
       </div>
-      <button class="copy-btn" onclick="loadRecent()" style="margin-top:16px;">🔄 Refresh</button>
+
+      <!-- Step 2: Upload conversation -->
+      <div class="vid-step" id="vid-step2" style="margin-top:16px; opacity:0.5; pointer-events:none;">
+        <div class="vid-step-title"><span class="vid-step-num">2</span> Upload Conversation Recording</div>
+        <div class="upload-zone" id="vid-conv-zone">
+          <input type="file" id="vid-conv-file" accept=".wav,.mp3,.flac,.ogg,.m4a"
+            onchange="handleVidConvFile(this)">
+          <div class="upload-icon">🎵</div>
+          <p><strong>Drop conversation audio</strong> or click to browse</p>
+          <div class="upload-hint">Multi-speaker recording · WAV, MP3, FLAC, OGG, M4A</div>
+          <div id="vid-conv-name" class="file-name"></div>
+        </div>
+        <button class="btn btn-vid2" id="vid-detect-btn" onclick="detectSpeaker()" disabled>
+          🔍 Find Speaker in Conversation
+        </button>
+      </div>
+
+      <!-- Step 3: Progress -->
+      <div class="progress-box" id="vid-progress-box" style="margin-top:16px;">
+        <div class="progress-header">
+          <span class="progress-title">🕵️ Voice ID Pipeline</span>
+          <span class="progress-pct" id="vid-prog-pct">0%</span>
+        </div>
+        <div class="progress-bar-bg">
+          <div class="progress-bar-fill" id="vid-prog-fill" style="background:linear-gradient(90deg,#be185d,#f472b6);"></div>
+        </div>
+        <div class="progress-log" id="vid-prog-log"></div>
+      </div>
+
+      <!-- Step 4: Results -->
+      <div id="vid-results" style="display:none;margin-top:24px;animation:fadeUp 0.4s ease;">
+        <div class="result-title" style="margin-bottom:16px;">🎯 Detection Results</div>
+
+        <div class="vid-stats">
+          <div class="vid-stat detected"><div class="sv" id="vid-detected">—</div><div class="sl">Speaker Detected</div></div>
+          <div class="vid-stat conf2"><div class="sv" id="vid-conf">—</div><div class="sl">Confidence</div></div>
+          <div class="vid-stat speak"><div class="sv" id="vid-time">—</div><div class="sl">Speaking Time</div></div>
+          <div class="vid-stat occ"><div class="sv" id="vid-occ">—</div><div class="sl">Occurrences</div></div>
+        </div>
+
+        <!-- SVG Timeline -->
+        <div class="timeline-wrap">
+          <div style="font-size:13px;font-weight:700;margin-bottom:12px;color:var(--text2);">📊 Speaker Timeline</div>
+          <div id="vid-timeline-svg"></div>
+        </div>
+
+        <!-- Segments table -->
+        <div style="margin-top:16px;" id="vid-segs-wrap">
+          <div style="font-size:14px;font-weight:700;margin-bottom:10px;">🎙️ Target Speaker Segments</div>
+          <div style="overflow-x:auto;">
+            <table class="segments-tbl" id="vid-segs-table">
+              <thead><tr>
+                <th>#</th><th>Time</th><th>Duration</th><th>Confidence</th><th>Transcription</th>
+              </tr></thead>
+              <tbody id="vid-segs-body"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Other speakers -->
+        <div style="margin-top:16px;" id="vid-others-wrap">
+          <div style="font-size:14px;font-weight:700;margin-bottom:10px;">👥 Other Speakers</div>
+          <div id="vid-others-list"></div>
+        </div>
+
+        <!-- Downloads -->
+        <div class="downloads" style="margin-top:20px;">
+          <a class="dl-btn wav" id="vid-dl-audio" href="#" download>
+            🎵 Download Target Speaker Audio
+          </a>
+          <a class="dl-btn rep" id="vid-dl-report" href="#" download>
+            📄 Download JSON Report
+          </a>
+        </div>
+      </div>
     </div>
 
-    <!-- ── Progress box (shared) ── -->
+    <!-- ── Progress box (shared STT) ── -->
     <div class="progress-box" id="progress-box">
       <div class="progress-header">
         <span class="progress-title">Processing Pipeline</span>
@@ -849,7 +1048,7 @@
     currentMode = mode;
     document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-    const tabMap = { mic: 0, file: 1, batch: 2 };
+    const tabMap = { mic: 0, file: 1, batch: 2, vid: 3 };
     document.querySelectorAll('.mode-tab')[tabMap[mode]].classList.add('active');
     document.getElementById(`panel-${mode}`).classList.add('active');
     if (mode === 'batch') loadRecent();
@@ -1103,8 +1302,216 @@
     setTimeout(() => t.classList.remove('show'), 3500);
   }
 
-  // ── Init ─────────────────────────────────────────────────────────────────
-  loadOutputsBanner();
+
+  // ══════════════════════════════════════════════════════════════════
+  //  VOICE IDENTIFICATION
+  // ══════════════════════════════════════════════════════════════════
+  let vidSpeakerId = null;
+  let vidSelectedConv = null;
+
+  function handleVidEnrollFile(input) {
+    const f = input.files ? input.files[0] : null;
+    if (!f) return;
+    const dn = document.getElementById('vid-sample-name');
+    dn.textContent = `📎 ${f.name} (${(f.size/1024/1024).toFixed(2)} MB)`;
+    dn.style.display = 'block';
+    document.getElementById('vid-enroll-btn').disabled = false;
+  }
+
+  function handleVidConvFile(input) {
+    const f = input.files ? input.files[0] : null;
+    if (!f) return;
+    vidSelectedConv = f;
+    const dn = document.getElementById('vid-conv-name');
+    dn.textContent = `📎 ${f.name} (${(f.size/1024/1024).toFixed(2)} MB)`;
+    dn.style.display = 'block';
+    document.getElementById('vid-detect-btn').disabled = false;
+  }
+
+  async function enrollVoice() {
+    const fileInput = document.getElementById('vid-sample-file');
+    const file = fileInput.files && fileInput.files[0];
+    if (!file) return;
+
+    const btn = document.getElementById('vid-enroll-btn');
+    const status = document.getElementById('vid-enroll-status');
+    btn.disabled = true;
+    btn.textContent = '⏳ Analyzing…';
+    status.className = 'enroll-status';
+    status.style.display = 'none';
+
+    const fd = new FormData();
+    fd.append('sample', file);
+    const name = document.getElementById('vid-speaker-name').value.trim();
+    if (name) fd.append('speaker_name', name);
+
+    try {
+      const res  = await fetch('/api/enroll-voice', { method: 'POST', body: fd });
+      const data = await res.json();
+
+      if (data.success) {
+        vidSpeakerId = data.speaker_id;
+        status.className = 'enroll-status success';
+        status.innerHTML = `✅ <strong>${data.name}</strong> enrolled successfully!<br>
+          Quality: <strong>${data.quality_score}/100</strong> · 
+          SNR: <strong>${data.snr} dB</strong> · 
+          Duration: <strong>${data.duration.toFixed(1)}s</strong> · 
+          ID: <code>${data.speaker_id}</code>
+          ${data.issues.length ? '<br>⚠️ ' + data.issues.join('; ') : ''}`;
+        // Unlock step 2
+        const step2 = document.getElementById('vid-step2');
+        step2.style.opacity = '1';
+        step2.style.pointerEvents = 'auto';
+        document.getElementById('vid-step1').classList.add('done');
+        showToast('Speaker enrolled! Now upload a conversation.');
+      } else {
+        status.className = 'enroll-status error';
+        status.innerHTML = `❌ Enrollment failed: ${data.error}`;
+        showToast(data.error, true);
+      }
+    } catch (e) {
+      status.className = 'enroll-status error';
+      status.innerHTML = `❌ Network error: ${e.message}`;
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '🎤 Analyze & Enroll Speaker';
+    }
+  }
+
+  async function detectSpeaker() {
+    if (!vidSpeakerId || !vidSelectedConv) return;
+
+    const btn = document.getElementById('vid-detect-btn');
+    btn.disabled = true;
+    btn.textContent = '⏳ Uploading…';
+
+    // Show progress
+    const pb = document.getElementById('vid-progress-box');
+    pb.classList.add('active');
+    document.getElementById('vid-results').style.display = 'none';
+    document.getElementById('vid-prog-log').innerHTML = '';
+    document.getElementById('vid-prog-fill').style.width = '0%';
+    document.getElementById('vid-prog-pct').textContent = '0%';
+
+    const fd = new FormData();
+    fd.append('conversation', vidSelectedConv);
+    fd.append('speaker_id', vidSpeakerId);
+
+    let sessionId = null;
+    try {
+      const res  = await fetch('/api/detect-speaker', { method: 'POST', body: fd });
+      const data = await res.json();
+      if (!data.success) {
+        showToast(data.error, true); btn.disabled = false;
+        btn.textContent = '🔍 Find Speaker in Conversation'; return;
+      }
+      sessionId = data.session_id;
+    } catch (e) {
+      showToast('Upload failed: ' + e.message, true);
+      btn.disabled = false; btn.textContent = '🔍 Find Speaker in Conversation'; return;
+    }
+
+    btn.textContent = '🔍 Processing…';
+
+    // Listen to SSE
+    const es = new EventSource(`/api/events/${sessionId}`);
+    es.onmessage = (ev) => {
+      const d = JSON.parse(ev.data);
+      // Update progress bar
+      if (d.progress !== undefined) {
+        document.getElementById('vid-prog-fill').style.width = d.progress + '%';
+        document.getElementById('vid-prog-pct').textContent = d.progress + '%';
+      }
+      // Log entry
+      if (d.message) {
+        const log = document.getElementById('vid-prog-log');
+        const entry = document.createElement('div');
+        entry.className = 'log-entry';
+        entry.textContent = d.message;
+        log.appendChild(entry);
+        log.scrollTop = log.scrollHeight;
+      }
+      if (d.step === 'done') {
+        es.close();
+        pb.classList.remove('active');
+        btn.disabled = false;
+        btn.textContent = '🔍 Find Speaker in Conversation';
+        displayVidResults(d);
+        showToast('Voice Identification complete!');
+      }
+      if (d.step === 'error') {
+        es.close();
+        pb.classList.remove('active');
+        btn.disabled = false;
+        btn.textContent = '🔍 Find Speaker in Conversation';
+        showToast(d.message, true);
+      }
+    };
+    es.onerror = () => { es.close(); btn.disabled = false; btn.textContent = '🔍 Find Speaker in Conversation'; };
+  }
+
+  function displayVidResults(d) {
+    const r = d.report;
+    if (!r) return;
+
+    // Stats
+    const present = r.conversation.target_speaker_present;
+    document.getElementById('vid-detected').textContent = present ? 'YES ✅' : 'NO ❌';
+    document.getElementById('vid-conf').textContent     = r.conversation.overall_confidence.toFixed(1) + '%';
+    document.getElementById('vid-time').textContent     =
+      r.target_speaker_analysis.total_speaking_time.toFixed(1) + 's ' +
+      '(' + r.target_speaker_analysis.speaking_time_percentage.toFixed(0) + '%)';
+    document.getElementById('vid-occ').textContent      = r.target_speaker_analysis.occurrence_count + ' times';
+
+    // SVG timeline
+    if (d.svg_timeline) {
+      document.getElementById('vid-timeline-svg').innerHTML = d.svg_timeline;
+    }
+
+    // Segments table
+    const tbody = document.getElementById('vid-segs-body');
+    if (r.speaking_segments && r.speaking_segments.length > 0) {
+      tbody.innerHTML = r.speaking_segments.map(s => {
+        const pct = s.confidence;
+        const cls = pct >= 80 ? 'hi' : pct >= 60 ? 'md' : 'lo';
+        return `<tr>
+          <td style="color:var(--text3);font-weight:700;">${s.segment_id}</td>
+          <td style="color:var(--accent2);">${s.start_time.toFixed(1)}s – ${s.end_time.toFixed(1)}s</td>
+          <td>${s.duration.toFixed(1)}s</td>
+          <td><span class="conf-badge ${cls}">${pct.toFixed(0)}%</span></td>
+          <td style="color:var(--text2);max-width:300px;">${s.transcription || '<em style="color:var(--text3)">—</em>'}</td>
+        </tr>`;
+      }).join('');
+    } else {
+      tbody.innerHTML = '<tr><td colspan="5" style="color:var(--text3);text-align:center;padding:20px;">No segments matched the target speaker.</td></tr>';
+    }
+
+    // Other speakers
+    const othersEl = document.getElementById('vid-others-list');
+    if (r.other_speakers && r.other_speakers.length > 0) {
+      othersEl.innerHTML = r.other_speakers.map(sp =>
+        `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;margin-bottom:8px;font-size:13px;">
+          <span style="color:var(--text2);font-weight:600;">${sp.speaker_label}</span>
+          <span style="color:var(--text3);">${sp.speaking_time.toFixed(1)}s · ${sp.percentage.toFixed(0)}% · ${sp.segment_count} turns</span>
+        </div>`
+      ).join('');
+    } else {
+      othersEl.innerHTML = '<div style="color:var(--text3);font-size:13px;">No other speakers detected.</div>';
+    }
+
+    // Download links
+    if (d.target_audio_file) {
+      document.getElementById('vid-dl-audio').href = `/api/download/${d.target_audio_file}`;
+    }
+    if (d.report_file) {
+      document.getElementById('vid-dl-report').href = `/api/download/${d.report_file}`;
+    }
+
+    document.getElementById('vid-results').style.display = 'block';
+    document.getElementById('vid-step2').classList.add('done');
+  }
+
 </script>
 </body>
 </html>
+
